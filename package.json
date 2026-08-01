@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node --import tsx --test src/lib/scoring.test.ts"
+    "test": "node --import tsx --test src/lib/scoring.test.ts src/lib/polls.test.ts"
   },
   "dependencies": {
     "next": "^16.2.12",

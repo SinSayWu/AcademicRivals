@@ -1,6 +1,7 @@
 import { query, queryOne } from "./db";
 import { listAllCategories, listCategories } from "./categories";
 import type { Category } from "./config";
+import { closeDuePolls, openPoll } from "./polls";
 import { addDays, today, weekDates, weekStart, type LocalDate } from "./dates";
 import {
   currentStreak,
@@ -355,8 +356,13 @@ export async function lockFinishedWeeks(): Promise<void> {
   const thisWeek = weekStart(today());
   while (cursor < thisWeek) {
     await lockWeek(cursor);
+    // Closing a week opens the vote on what each category should be worth.
+    await openPoll(cursor);
     cursor = addDays(cursor, 7);
   }
+
+  // ...and closes any vote whose own week has now run out.
+  await closeDuePolls();
 }
 
 export { listCategories };

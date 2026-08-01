@@ -1,12 +1,21 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { getImprovement, getWeek, lockFinishedWeeks } from "@/lib/data";
+import {
+  getImprovement,
+  getStreaks,
+  getUserWeekDetail,
+  getWeek,
+  lockFinishedWeeks,
+} from "@/lib/data";
 import { listCategories } from "@/lib/categories";
 import { prettyRange, today, weekEnd, weekStart } from "@/lib/dates";
 import Shell from "../Shell";
+import RivalPanel from "./RivalPanel";
 
 export const dynamic = "force-dynamic";
+
+type Search = Promise<{ rival?: string }>;
 
 function Spark({ daily }: { daily: number[] }) {
   const peak = Math.max(20, ...daily.map(Math.abs));
@@ -23,7 +32,11 @@ function Spark({ daily }: { daily: number[] }) {
   );
 }
 
-export default async function LeaderboardPage() {
+export default async function LeaderboardPage({
+  searchParams,
+}: {
+  searchParams: Search;
+}) {
   const session = await getSession();
   if (!session) redirect("/login");
 
@@ -32,13 +45,23 @@ export default async function LeaderboardPage() {
   await lockFinishedWeeks();
 
   const now = today();
-  const [rows, priorAverage, categories] = await Promise.all([
+  const [rows, priorAverage, categories, streaks] = await Promise.all([
     getWeek(now),
     getImprovement(now),
     listCategories(),
+    getStreaks(),
   ]);
 
   const anythingLogged = rows.some((r) => r.daysLogged > 0);
+
+  // Whose week fills the side panel. Defaults to you, so the panel is never
+  // empty on arrival.
+  const { rival: wanted } = await searchParams;
+  const selected =
+    (wanted && rows.find((r) => r.handle === wanted.toLowerCase())) ||
+    rows.find((r) => r.userId === session.userId) ||
+    rows[0];
+  const detail = selected ? await getUserWeekDetail(selected.userId, now) : null;
 
   // Most Improved is measured against your own trailing average, so the person
   // with the heaviest course load still has something to win.
@@ -83,32 +106,46 @@ export default async function LeaderboardPage() {
         </div>
       ) : (
         <>
-          <section>
-            <div className="list">
-              {rows.map((r) => (
-                <Link
-                  href={`/rivals/${encodeURIComponent(r.handle)}`}
-                  key={r.userId}
-                  className={`lb r${r.rank} ${r.userId === session.userId ? "me" : ""}`}
-                >
-                  <div className="rank">{r.rank}</div>
-                  <div className="who">
-                    <b>{r.name}</b>
-                    <div className="meta">
-                      {r.daysLogged}/7 days logged
-                      {r.streak > 1 ? ` · ${r.streak} day streak` : ""}
+          <div className="withpanel">
+            <section>
+              <div className="list">
+                {rows.map((r) => (
+                  <Link
+                    href={`/leaderboard?rival=${encodeURIComponent(r.handle)}`}
+                    scroll={false}
+                    key={r.userId}
+                    className={`lb r${r.rank} ${r.userId === session.userId ? "me" : ""} ${
+                      selected?.userId === r.userId ? "sel" : ""
+                    }`}
+                  >
+                    <div className="rank">{r.rank}</div>
+                    <div className="who">
+                      <b>{r.name}</b>
+                      <div className="meta">
+                        {r.daysLogged}/7 days logged
+                        {r.streak > 1 ? ` · ${r.streak} day streak` : ""}
+                      </div>
                     </div>
-                  </div>
-                  <Spark daily={r.daily} />
-                  <div className="score">{r.points}</div>
-                  <div className="chev" aria-hidden>
-                    →
-                  </div>
-                </Link>
-              ))}
-            </div>
-            <p className="note">Open anyone to see exactly what they logged, day by day.</p>
-          </section>
+                    <Spark daily={r.daily} />
+                    <div className="score">{r.points}</div>
+                  </Link>
+                ))}
+              </div>
+              <p className="note">
+                Pick anyone to see exactly what they logged, day by day.
+              </p>
+            </section>
+
+            {selected && detail ? (
+              <RivalPanel
+                name={selected.name}
+                handle={selected.handle}
+                rank={selected.rank}
+                streak={streaks.get(selected.userId) ?? 0}
+                detail={detail}
+              />
+            ) : null}
+          </div>
 
           <section className="cols2">
             <div>

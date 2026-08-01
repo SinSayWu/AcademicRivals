@@ -621,6 +621,244 @@ button.primary.block {
   align-items: start;
 }
 
+/* ================================================= standings + rival panel */
+
+.withpanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: 32px;
+  align-items: start;
+}
+
+.lb.sel {
+  background: var(--sunk);
+}
+
+.list > .lb.sel.r1 {
+  background: #fbe7e3;
+}
+
+.panel {
+  position: sticky;
+  top: 38px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.04);
+}
+
+.panelhead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.panelhead b {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.panelhead .meta {
+  font-size: 12px;
+  color: var(--faint);
+  margin-top: 2px;
+}
+
+.panelhead .ptotal {
+  font-family: var(--display);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: lining-nums tabular-nums;
+  line-height: 1;
+}
+
+/* Points per day. Bars hang below the axis on a net-negative day. */
+.daybars {
+  display: flex;
+  gap: 4px;
+  margin: 16px 0 18px;
+}
+
+.daybar {
+  flex: 1;
+  text-align: center;
+}
+
+.daybar .track {
+  height: 46px;
+  display: flex;
+  align-items: flex-end;
+  background: linear-gradient(var(--line-soft), var(--line-soft)) no-repeat center bottom /
+    100% 1px;
+}
+
+.daybar .track i {
+  width: 100%;
+  background: var(--ink);
+  border-radius: 2px 2px 0 0;
+}
+
+.daybar .track i.neg {
+  background: var(--red);
+  opacity: 0.5;
+}
+
+.daybar span {
+  display: block;
+  font-size: 10px;
+  color: var(--faint);
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+
+.daybar span.istoday {
+  color: var(--red);
+  font-weight: 700;
+}
+
+.daybar em {
+  display: block;
+  font-style: normal;
+  font-size: 10px;
+  color: var(--muted);
+  font-variant-numeric: lining-nums tabular-nums;
+  min-height: 13px;
+}
+
+.minigrid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  table-layout: fixed;
+}
+
+.minigrid th,
+.minigrid td {
+  text-align: center;
+  padding: 6px 1px;
+  border-bottom: 1px solid var(--line-soft);
+  font-variant-numeric: lining-nums tabular-nums;
+  overflow: hidden;
+}
+
+.minigrid thead th {
+  font-size: 10px;
+  color: var(--faint);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--line-strong, var(--line));
+}
+
+.minigrid thead th.istoday {
+  color: var(--red);
+  font-weight: 700;
+}
+
+.minigrid th.cat {
+  text-align: left;
+  width: 88px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink);
+  text-transform: none;
+  letter-spacing: 0;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.minigrid td.zero {
+  color: #d5cdc3;
+}
+
+.minigrid .tot {
+  width: 44px;
+  border-left: 1px solid var(--line-soft);
+}
+
+.minigrid tbody tr:last-child td,
+.minigrid tbody tr:last-child th {
+  border-bottom: none;
+}
+
+.btn.block {
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin-top: 16px;
+}
+
+/* ===================================================================== vote */
+
+.voterow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 0;
+}
+
+.voterow .info {
+  flex: 1;
+  min-width: 0;
+}
+
+.voterow .name {
+  font-weight: 600;
+}
+
+.choices {
+  display: flex;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+/* Radios styled as a segmented control: the input stays in the DOM for
+   keyboard and form semantics, but only the label chrome is visible. */
+.choice input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.choice span {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  font-size: 12.5px;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.choice span:hover {
+  border-color: var(--muted);
+  color: var(--ink);
+}
+
+.choice input:checked + span {
+  border-color: var(--red);
+  background: var(--red-tint);
+  color: var(--red-deep);
+  font-weight: 600;
+}
+
+.choice input:focus-visible + span {
+  outline: 2px solid var(--red);
+  outline-offset: 1px;
+}
+
+.resultval {
+  font-size: 13px;
+  flex-shrink: 0;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
 /* ============================================================== rival detail */
 
 .gridwrap {
@@ -977,6 +1215,16 @@ table.season tr:last-child td {
 
 /* ================================================================ narrow fit */
 
+@media (max-width: 1080px) {
+  .withpanel {
+    grid-template-columns: 1fr;
+  }
+
+  .panel {
+    position: static;
+  }
+}
+
 @media (max-width: 960px) {
   .split,
   .cols2,
@@ -987,6 +1235,11 @@ table.season tr:last-child td {
 
   .scorecard {
     position: static;
+  }
+
+  .voterow {
+    flex-wrap: wrap;
+    gap: 10px;
   }
 }
 

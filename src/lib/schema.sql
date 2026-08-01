@@ -104,6 +104,25 @@ CREATE TABLE IF NOT EXISTS entries (
 CREATE INDEX IF NOT EXISTS entries_by_date ON entries (local_date);
 CREATE INDEX IF NOT EXISTS entries_by_user_date ON entries (user_id, local_date);
 
+-- End-of-week vote on what each category is worth. One poll per completed
+-- week; it opens when that week locks and closes a week later, so a rate
+-- change only ever lands on a week boundary.
+CREATE TABLE IF NOT EXISTS polls (
+  week_start  DATE PRIMARY KEY,
+  opened_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  closed_at   TIMESTAMPTZ,
+  results     JSONB
+);
+
+CREATE TABLE IF NOT EXISTS poll_votes (
+  week_start    DATE NOT NULL REFERENCES polls(week_start) ON DELETE CASCADE,
+  user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  category_key  TEXT NOT NULL,
+  -- -1 worth less, 0 leave it, +1 worth more
+  choice        SMALLINT NOT NULL CHECK (choice IN (-1, 0, 1)),
+  PRIMARY KEY (week_start, user_id, category_key)
+);
+
 -- Frozen results. Written once when a week closes so that retuning a category
 -- can never rewrite who won a past week.
 CREATE TABLE IF NOT EXISTS week_scores (
