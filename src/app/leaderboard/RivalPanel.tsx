@@ -67,7 +67,9 @@ export default function RivalPanel({
           <table className="minigrid">
             <thead>
               <tr>
-                <th />
+                {/* Needs .cat too: with table-layout:fixed the whole column
+                    takes its width from the first row's cell. */}
+                <th className="cat" />
                 {detail.dates.map((d) => (
                   <th key={d} className={d === now ? "istoday" : ""}>
                     {dayLabel(d).slice(0, 1)}
