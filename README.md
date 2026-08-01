@@ -4,6 +4,10 @@ A weekly productivity leaderboard for a small group of friends. Everyone logs
 their hours against a shared set of categories; the standings update live and
 freeze every Monday.
 
+**Live:** https://web-production-daa43.up.railway.app
+
+Pushing to `main` deploys automatically — Railway builds from this repo.
+
 ## The scoring model
 
 Categories live in the database and are edited from the **Categories** screen —
