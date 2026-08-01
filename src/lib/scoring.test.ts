@@ -11,8 +11,10 @@ const cat = (key: string) => CATS.find((c) => c.key === key)!;
 test("positive categories are linear at their rate", () => {
   assert.equal(scoreCategory(cat("schoolwork"), 60).points, 10);
   assert.equal(scoreCategory(cat("schoolwork"), 240).points, 40);
-  assert.equal(scoreCategory(cat("exercise"), 60).points, 20);
-  assert.equal(scoreCategory(cat("reading"), 30).points, 7.5);
+  assert.equal(scoreCategory(cat("exercise"), 60).points, 10);
+  // A fractional rate still lands where arithmetic says it should.
+  assert.equal(scoreCategory(cat("reading"), 120).points, 15);
+  assert.equal(scoreCategory(cat("reading"), 60).points, 7.5);
 });
 
 test("nothing is capped — the tenth hour is worth as much as the first", () => {

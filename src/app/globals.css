@@ -482,6 +482,64 @@ button.primary.block {
   padding: 4px 0;
 }
 
+/* There is no save button — the log writes itself. The dot carries the whole
+   state: it pulses red while a write is in flight and goes quiet once the
+   number is on the server. */
+.savestate {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 12px;
+  color: var(--faint);
+}
+
+.savestate i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--line);
+  flex-shrink: 0;
+}
+
+.savestate.busy i {
+  background: var(--red);
+  animation: savepulse 1.1s ease-in-out infinite;
+}
+
+.savestate.bad {
+  color: var(--red-deep);
+}
+
+.savestate.bad i {
+  background: var(--red-deep);
+}
+
+.savestate button {
+  margin-left: auto;
+  padding: 3px 9px;
+  border: 1px solid var(--red-line);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--red-deep);
+  font: inherit;
+  cursor: pointer;
+}
+
+@keyframes savepulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .savestate.busy i {
+    animation: none;
+  }
+}
+
 /* =============================================================== leaderboard */
 
 .lb {

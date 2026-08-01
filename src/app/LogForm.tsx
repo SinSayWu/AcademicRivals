@@ -1,9 +1,20 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Category } from "@/lib/config";
 import { scoreDay, type MinutesMap } from "@/lib/scoring";
 import { formatMinutes, parseTime } from "@/lib/timeinput";
+
+/**
+ * How long a change sits before it is written. Long enough that holding the +
+ * button is one save instead of forty, short enough that you never think about
+ * it.
+ */
+const AUTOSAVE_MS = 700;
+
+/** Backoff after a failed write, per consecutive failure. */
+const RETRY_MS = 4000;
+const MAX_RETRY_MS = 30000;
 
 /**
  * Nudge size per category. Targets (sleep) move in half-hours because nobody
@@ -87,23 +98,77 @@ export default function LogForm({
   save: (minutes: MinutesMap) => Promise<void>;
 }) {
   const [minutes, setMinutes] = useState<MinutesMap>(initial);
-  const [saved, setSaved] = useState(true);
-  const [pending, startTransition] = useTransition();
+  const [saving, setSaving] = useState(false);
+  const [failures, setFailures] = useState(0);
 
   const set = (key: string, next: number) => {
     setMinutes((prev) => ({ ...prev, [key]: next }));
-    setSaved(false);
   };
 
-  const onSave = () => {
-    // Send every category, including zeroes — an explicit "0h screen time" is
-    // a real claim, and without it the row would just stay missing.
-    const payload = Object.fromEntries(categories.map((c) => [c.key, minutes[c.key] ?? 0]));
-    startTransition(async () => {
-      await save(payload);
-      setSaved(true);
+  // Every category goes in the payload, including zeroes — an explicit
+  // "0h screen time" is a real claim, and without it the row stays missing.
+  // Serialising it gives a cheap identity to compare and to queue.
+  const payload = useMemo(
+    () =>
+      JSON.stringify(Object.fromEntries(categories.map((c) => [c.key, minutes[c.key] ?? 0]))),
+    [categories, minutes],
+  );
+
+  // What the server is known to hold. Seeding it with the payload we mounted
+  // with is what stops a fresh page from writing a row nobody asked for.
+  const savedRef = useRef(payload);
+  const dirty = payload !== savedRef.current;
+
+  // The action is a fresh function object on every render of the page, so it
+  // can't sit in an effect's dependencies without restarting the timer.
+  const saveRef = useRef(save);
+  saveRef.current = save;
+
+  // Writes run one at a time and in order. Two of them racing could otherwise
+  // land the older payload last and quietly undo a number.
+  const chain = useRef<Promise<void>>(Promise.resolve());
+  const flush = useCallback((body: string) => {
+    chain.current = chain.current.then(async () => {
+      if (savedRef.current === body) return; // already landed while queued
+      setSaving(true);
+      try {
+        await saveRef.current(JSON.parse(body) as MinutesMap);
+        savedRef.current = body;
+        setFailures(0);
+      } catch {
+        setFailures((n) => n + 1);
+      } finally {
+        setSaving(false);
+      }
     });
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!editable || !dirty) return;
+    const delay = failures === 0 ? AUTOSAVE_MS : Math.min(MAX_RETRY_MS, RETRY_MS * failures);
+    const t = setTimeout(() => flush(payload), delay);
+    return () => clearTimeout(t);
+  }, [editable, dirty, payload, failures, flush]);
+
+  // Clicking a day arrow unmounts this form. Anything still sitting in the
+  // debounce window has to go out now, not never — the request outlives the
+  // component.
+  const latest = useRef(payload);
+  latest.current = payload;
+  useEffect(() => {
+    if (!editable) return;
+    return () => {
+      if (latest.current !== savedRef.current) flush(latest.current);
+    };
+  }, [editable, flush]);
+
+  // Closing the tab mid-write is the one case nothing can rescue, so ask.
+  useEffect(() => {
+    if (!dirty && !saving) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty, saving]);
 
   const day = scoreDay(categories, minutes);
   const scored = day.categories.filter((c) => c.points !== 0);
@@ -155,7 +220,8 @@ export default function LogForm({
         {editable ? (
           <p className="note">
             Click a number to type it exactly — &ldquo;7.5&rdquo;, &ldquo;7h30&rdquo;
-            and &ldquo;45m&rdquo; all work.
+            and &ldquo;45m&rdquo; all work. Nothing needs saving; every change is
+            written on its own.
           </p>
         ) : null}
       </section>
@@ -182,14 +248,24 @@ export default function LogForm({
         )}
 
         {editable ? (
-          <button
-            className="primary block"
-            onClick={onSave}
-            disabled={pending || saved}
-            type="button"
+          <div
+            className={`savestate ${failures > 0 ? "bad" : saving || dirty ? "busy" : "ok"}`}
+            aria-live="polite"
           >
-            {pending ? "Saving…" : saved ? "Saved" : "Save day"}
-          </button>
+            <i aria-hidden />
+            <span>
+              {failures > 0
+                ? "Couldn’t save"
+                : saving || dirty
+                  ? "Saving…"
+                  : "Saved"}
+            </span>
+            {failures > 0 ? (
+              <button type="button" onClick={() => flush(payload)}>
+                Retry
+              </button>
+            ) : null}
+          </div>
         ) : (
           <p className="note" style={{ marginTop: 0 }}>
             This day is locked. You can only edit the last 3 days — backfilling a

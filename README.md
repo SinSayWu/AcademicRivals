@@ -28,8 +28,8 @@ The defaults, which you should retune once you've used it for a week:
 | --- | --- | --- |
 | Schoolwork | earns | 10 pts/h |
 | Projects & ECs | earns | 12 pts/h |
-| Exercise | earns | 20 pts/h |
-| Reading | earns | 15 pts/h |
+| Exercise | earns | 10 pts/h |
+| Reading | earns | 7.5 pts/h |
 | Junk Screen Time | loses | −10 pts/h |
 | Sleep | range | 7–9h, 15 pts inside; zero below 5h or above 11h |
 
