@@ -76,6 +76,19 @@ BEGIN
   END IF;
 END $$;
 
+-- Seeded descriptions are stored per row, so changing DEFAULT_CATEGORIES does
+-- not reach a database that has already been seeded. These two still described
+-- caps and an 8h target, both of which are gone. Matching on the exact old text
+-- means a description someone has edited themselves is left alone, and makes
+-- these statements no-ops once they have run.
+UPDATE categories SET hint = 'Anything that gets your heart rate up.'
+ WHERE key = 'exercise'
+   AND hint = 'High rate, low cap — this rewards showing up, not grinding.';
+
+UPDATE categories SET hint = '7 to 9 hours. Both too little and too much lose points.'
+ WHERE key = 'sleep'
+   AND hint = 'Target 8h. Both too little and too much lose points.';
+
 -- One row per person per category per day, upserted. Not an append-only log:
 -- editing "today's schoolwork" should overwrite, not accumulate.
 -- The 1440 check is physical, not a scoring cap: a day has 24 hours.
