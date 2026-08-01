@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.env
+.env.local
+.env*.local
+
+# Nixpacks sets up a build cache mount at this path, which fails if a real file
+# is sitting there from a local typecheck.
+*.tsbuildinfo

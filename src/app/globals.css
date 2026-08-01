@@ -1,0 +1,888 @@
+:root {
+  /* Warm paper, not screen-white. The whole palette is pulled slightly toward
+     red so the accent belongs to the page instead of sitting on top of it. */
+  --paper: #faf7f4;
+  --card: #ffffff;
+  --sunk: #f3eee8;
+  --line: #e7ded4;
+  --line-soft: #f0e9e1;
+
+  --ink: #1c1917;
+  --muted: #7c7268;
+  --faint: #a89e94;
+
+  --red: #c0392b;
+  --red-deep: #94261b;
+  --red-tint: #fdf1ef;
+  --red-line: #f0d5d0;
+
+  --radius: 10px;
+  --sidebar: 236px;
+  --display: ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif;
+}
+
+/* Georgia and most oldstyle serifs default to text figures, where 3/4/5/7/9
+   descend below the baseline — which makes "37.5" read as "37·5". Every number
+   set in the display face has to opt into lining figures. */
+.pts,
+.big,
+.bignum,
+.lb .score,
+.lb .rank,
+td,
+th {
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 13px;
+}
+
+.tiny {
+  font-size: 12px;
+}
+
+/* ================================================================= app shell */
+
+.app {
+  display: grid;
+  grid-template-columns: var(--sidebar) 1fr;
+  min-height: 100dvh;
+}
+
+.sidebar {
+  border-right: 1px solid var(--line);
+  padding: 28px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+}
+
+.sidebar .logo {
+  padding: 0 10px;
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+/* The one flourish in the chrome: a red rule under the wordmark. */
+.sidebar .logo::after {
+  content: "";
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--red);
+  margin: 9px 0 7px;
+}
+
+.sidebar .logo span {
+  display: block;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--faint);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.sidebar nav a {
+  position: relative;
+  padding: 8px 12px;
+  border-radius: 7px;
+  font-size: 13.5px;
+  color: var(--muted);
+  transition: background 0.12s, color 0.12s;
+}
+
+.sidebar nav a:hover {
+  background: var(--sunk);
+  color: var(--ink);
+}
+
+.sidebar nav a.active {
+  background: var(--card);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(28, 25, 23, 0.05);
+}
+
+.sidebar nav a.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 2.5px;
+  border-radius: 2px;
+  background: var(--red);
+}
+
+.sidebar .foot {
+  margin-top: auto;
+  padding: 14px 10px 0;
+  border-top: 1px solid var(--line);
+}
+
+.sidebar .foot b {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.linkbtn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 2px;
+  color: var(--faint);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.linkbtn:hover {
+  color: var(--red);
+}
+
+.main {
+  padding: 38px 44px 76px;
+  max-width: 1080px;
+  width: 100%;
+}
+
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 18px;
+  margin-bottom: 26px;
+  border-bottom: 1px solid var(--line);
+}
+
+.page-head h1 {
+  font-family: var(--display);
+  font-size: 27px;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.page-head .sub {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+/* Section labels: small, tracked-out, red. Cheap way to make a page feel like
+   a printed league table rather than a form. */
+h2 {
+  font-size: 10.5px;
+  color: var(--red);
+  margin: 0 0 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+section + section {
+  margin-top: 36px;
+}
+
+/* ===================================================================== atoms */
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.card.pad {
+  padding: 20px;
+}
+
+button.primary {
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: none;
+  background: var(--red);
+  color: #fff;
+  font-weight: 600;
+  font-size: 13.5px;
+  font-family: inherit;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+button.primary:hover:not(:disabled) {
+  background: var(--red-deep);
+}
+
+button.primary:disabled {
+  background: var(--sunk);
+  color: var(--faint);
+  cursor: default;
+}
+
+button.primary.block {
+  width: 100%;
+}
+
+.btn {
+  display: inline-block;
+  padding: 7px 13px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+}
+
+.btn:hover {
+  border-color: var(--muted);
+}
+
+.btn.danger:hover {
+  border-color: var(--red);
+  color: var(--red);
+  background: var(--red-tint);
+}
+
+.btn.icon {
+  padding: 5px 9px;
+  color: var(--faint);
+}
+
+/* Gains are confident ink; losses are red. No green — red already carries the
+   competitive charge, and a third colour would only dilute it. */
+.pts {
+  font-variant-numeric: lining-nums tabular-nums;
+  font-weight: 600;
+}
+
+.pts.pos {
+  color: var(--ink);
+}
+
+.pts.neg {
+  color: var(--red);
+}
+
+/* ================================================================ log screen */
+
+.split {
+  display: grid;
+  grid-template-columns: 1fr 268px;
+  gap: 40px;
+  align-items: start;
+}
+
+.daynav {
+  display: flex;
+  gap: 6px;
+}
+
+.daynav a,
+.daynav span.disabled {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.daynav a:hover {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.daynav span.disabled {
+  opacity: 0.4;
+}
+
+.list > * {
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.list > *:last-child {
+  border-bottom: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 15px 0;
+}
+
+.row .info {
+  flex: 1;
+  min-width: 0;
+}
+
+.row .name {
+  font-weight: 600;
+}
+
+/* Secondary line under any name — always the faintest thing in its row. */
+.hint {
+  font-size: 12px;
+  color: var(--faint);
+  margin-top: 1px;
+}
+
+.row .rowpts {
+  width: 58px;
+  text-align: right;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.stepper button {
+  width: 26px;
+  height: 30px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--faint);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.stepper button:hover:not(:disabled) {
+  background: var(--red-tint);
+  color: var(--red);
+}
+
+.stepper button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* Click to type an exact value — 8h of sleep is 32 clicks on a stepper alone,
+   which is more friction than the whole habit can survive. */
+.stepper input.value {
+  width: 66px;
+  min-width: 66px;
+  padding: 6px 2px;
+  text-align: center;
+  font-variant-numeric: lining-nums tabular-nums;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: inherit;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink);
+  transition: border-color 0.12s;
+}
+
+.stepper input.value:focus {
+  border-color: var(--red);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--red-tint);
+}
+
+.stepper input.value.zero {
+  color: var(--faint);
+  font-weight: 400;
+  background: transparent;
+}
+
+.stepper input.value:disabled {
+  background: var(--sunk);
+  color: var(--faint);
+}
+
+/* ------------------------------------------------------------ score panel */
+
+.scorecard {
+  position: sticky;
+  top: 38px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.04);
+}
+
+.scorecard .big {
+  font-family: var(--display);
+  font-size: 46px;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  font-variant-numeric: lining-nums tabular-nums;
+  line-height: 1;
+}
+
+.scorecard .breakdown {
+  margin: 18px 0;
+  border-top: 1px solid var(--line-soft);
+  padding-top: 14px;
+}
+
+.scorecard .bl {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  padding: 4px 0;
+}
+
+/* =============================================================== leaderboard */
+
+.lb {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 16px 14px;
+  border-radius: var(--radius);
+}
+
+/* The leader gets the tint and the red numeral. Everyone else is plain ink —
+   the contrast is the reward. The divider is suppressed under the tinted block
+   so it doesn't cut across the rounded corner. */
+.list > .lb.r1 {
+  background: var(--red-tint);
+  border-bottom-color: transparent;
+}
+
+.lb .rank {
+  width: 24px;
+  font-family: var(--display);
+  font-size: 19px;
+  font-weight: 600;
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--faint);
+  flex-shrink: 0;
+}
+
+.lb.r1 .rank {
+  color: var(--red);
+}
+
+.lb .who {
+  flex: 1;
+  min-width: 0;
+}
+
+.lb .who b {
+  font-size: 15px;
+  font-weight: 600;
+  display: block;
+}
+
+.lb.me .who b::after {
+  content: "you";
+  margin-left: 8px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--red);
+  border: 1px solid var(--red-line);
+  background: var(--card);
+  border-radius: 4px;
+  padding: 2px 5px;
+  vertical-align: 2px;
+}
+
+.lb .meta {
+  font-size: 12px;
+  color: var(--faint);
+  margin-top: 2px;
+}
+
+.lb .score {
+  text-align: right;
+  flex-shrink: 0;
+  width: 72px;
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* Seven bars, one per day — shows *when* someone did the work, which is the
+   part a single weekly total hides. */
+.spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 30px;
+  width: 104px;
+  flex-shrink: 0;
+}
+
+.spark i {
+  flex: 1;
+  background: var(--line);
+  border-radius: 2px;
+  min-height: 2px;
+}
+
+.spark i.on {
+  background: var(--ink);
+}
+
+.lb.r1 .spark i.on {
+  background: var(--red);
+}
+
+.spark i.neg {
+  background: var(--red);
+  opacity: 0.45;
+}
+
+.cols2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 36px;
+  align-items: start;
+}
+
+.bignum {
+  font-family: var(--display);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* ================================================================ categories */
+
+.catrow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
+}
+
+.catrow .info {
+  flex: 1;
+  min-width: 0;
+}
+
+.catrow .name {
+  font-weight: 600;
+  font-size: 14.5px;
+}
+
+/* The scoring rule is the point of this row, so it gets the mono-ish treatment
+   and stays darker than the free-text description under it. */
+.catrow .rule {
+  display: inline-block;
+  font-size: 11.5px;
+  color: var(--red-deep);
+  background: var(--red-tint);
+  border: 1px solid var(--red-line);
+  border-radius: 5px;
+  padding: 1px 7px;
+  margin-top: 5px;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.catrow .hint {
+  margin-top: 5px;
+}
+
+.catrow .acts {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.editform {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 2.5px solid var(--red);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin: 10px 0;
+  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.04);
+}
+
+.grid3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.formactions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.archived {
+  opacity: 0.6;
+}
+
+/* ===================================================================== forms */
+
+input.field,
+select.field {
+  width: 100%;
+  padding: 9px 11px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  font-size: 13.5px;
+  font-family: inherit;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+input.field:focus,
+select.field:focus {
+  border-color: var(--red);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--red-tint);
+}
+
+label {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 5px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.stack + .stack {
+  margin-top: 15px;
+}
+
+.error {
+  background: var(--red-tint);
+  border: 1px solid var(--red-line);
+  border-left: 2.5px solid var(--red);
+  color: var(--red-deep);
+  padding: 10px 12px;
+  border-radius: 7px;
+  font-size: 13px;
+  margin-top: 14px;
+}
+
+.note {
+  font-size: 12px;
+  color: var(--faint);
+  margin-top: 14px;
+  line-height: 1.6;
+  max-width: 62ch;
+}
+
+/* Login is the one screen with no shell, so it centers in the viewport. */
+.center {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.center .box {
+  width: 100%;
+  max-width: 340px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 32px 30px;
+  box-shadow: 0 2px 10px rgba(28, 25, 23, 0.05);
+}
+
+.center h1 {
+  font-family: var(--display);
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.center h1::after {
+  content: "";
+  display: block;
+  width: 26px;
+  height: 2px;
+  background: var(--red);
+  margin-top: 10px;
+}
+
+.chip {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--red-tint);
+  border: 1px solid var(--red-line);
+  font-size: 11px;
+  color: var(--red-deep);
+}
+
+table.season {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+table.season th {
+  text-align: right;
+  font-size: 10.5px;
+  color: var(--muted);
+  padding: 0 12px 10px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  border-bottom: 1.5px solid var(--ink);
+}
+
+table.season th:first-child,
+table.season td:first-child {
+  text-align: left;
+  padding-left: 4px;
+}
+
+table.season td {
+  text-align: right;
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--line-soft);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+table.season tbody tr:first-child td {
+  font-weight: 600;
+}
+
+table.season tbody tr:first-child td:last-child {
+  color: var(--red);
+}
+
+table.season tr:last-child td {
+  border-bottom: none;
+}
+
+.empty {
+  color: var(--muted);
+  font-size: 13.5px;
+  padding: 52px 0;
+  line-height: 1.7;
+  border-top: 1px solid var(--line);
+}
+
+/* ================================================================ narrow fit */
+
+@media (max-width: 960px) {
+  .split,
+  .cols2,
+  .grid3,
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
+
+  .scorecard {
+    position: static;
+  }
+}
+
+@media (max-width: 700px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .sidebar .logo,
+  .sidebar .foot span {
+    display: none;
+  }
+
+  .sidebar nav {
+    flex-direction: row;
+    flex: 1;
+  }
+
+  .sidebar .foot {
+    margin-top: 0;
+    border-top: none;
+    padding-top: 0;
+  }
+
+  .main {
+    padding: 24px 16px 56px;
+  }
+
+  .row,
+  .catrow {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+}
