@@ -24,6 +24,21 @@ export const dynamic = "force-dynamic";
 type Params = Promise<{ handle: string }>;
 type Search = Promise<{ week?: string }>;
 
+/**
+ * Handles are derived from display names, so they can contain spaces
+ * ("yuhang wu"). Next hands dynamic route segments over still percent-encoded,
+ * so they have to be decoded here — but a hand-typed URL can contain a
+ * malformed escape like "%zz", which makes decodeURIComponent throw. Falling
+ * back to the raw value turns that into a clean 404 instead of a 500.
+ */
+function decodeHandle(raw: string): string {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
 export default async function RivalPage({
   params,
   searchParams,
@@ -34,10 +49,8 @@ export default async function RivalPage({
   const session = await getSession();
   if (!session) redirect("/login");
 
-  // Next already URL-decodes route params, so decoding again would corrupt a
-  // name containing a literal '%' (and throw on a malformed one).
   const { handle } = await params;
-  const rival = await getUserByHandle(handle.toLowerCase());
+  const rival = await getUserByHandle(decodeHandle(handle).toLowerCase());
   if (!rival) notFound();
 
   const now = today();
