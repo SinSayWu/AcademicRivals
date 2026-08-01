@@ -625,7 +625,7 @@ button.primary.block {
 
 .withpanel {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 400px;
+  grid-template-columns: minmax(0, 1fr) 424px;
   gap: 32px;
   align-items: start;
 }
@@ -758,16 +758,19 @@ button.primary.block {
   font-weight: 700;
 }
 
+/* Labels wrap rather than truncate — "Junk Screen Time" over two lines is
+   readable, "Junk ..." is not. */
 .minigrid th.cat {
   text-align: left;
-  width: 88px;
+  width: 92px;
+  padding-right: 6px;
   font-size: 11.5px;
   font-weight: 500;
   color: var(--ink);
   text-transform: none;
   letter-spacing: 0;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  white-space: normal;
+  line-height: 1.25;
 }
 
 .minigrid td.zero {
@@ -775,7 +778,7 @@ button.primary.block {
 }
 
 .minigrid .tot {
-  width: 44px;
+  width: 42px;
   border-left: 1px solid var(--line-soft);
 }
 
