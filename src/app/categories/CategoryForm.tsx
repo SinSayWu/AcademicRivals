@@ -46,7 +46,7 @@ export default function CategoryForm({
           >
             <option value="positive">Earns points</option>
             <option value="penalty">Loses points</option>
-            <option value="target">Hits a target</option>
+            <option value="target">Hits a range</option>
           </select>
         </div>
       </div>
@@ -66,31 +66,31 @@ export default function CategoryForm({
         {kind === "target" ? (
           <div className="grid3">
             <div>
-              <label htmlFor="targetHours">Ideal hours</label>
+              <label htmlFor="lowHours">Range from (h)</label>
               <input
-                id="targetHours"
-                name="targetHours"
+                id="lowHours"
+                name="lowHours"
                 className="field"
                 type="number"
                 step="0.25"
-                min="0.25"
-                defaultValue={h(category?.targetMin ?? 480)}
+                min="0"
+                defaultValue={h(category?.rangeLowMin ?? 420)}
               />
             </div>
             <div>
-              <label htmlFor="toleranceHours">Allowed drift (±h)</label>
+              <label htmlFor="highHours">Range to (h)</label>
               <input
-                id="toleranceHours"
-                name="toleranceHours"
+                id="highHours"
+                name="highHours"
                 className="field"
                 type="number"
                 step="0.25"
-                min="0.25"
-                defaultValue={h(category?.toleranceMin ?? 90)}
+                min="0"
+                defaultValue={h(category?.rangeHighMin ?? 540)}
               />
             </div>
             <div>
-              <label htmlFor="maxPoints">Points when on target</label>
+              <label htmlFor="maxPoints">Points inside range</label>
               <input
                 id="maxPoints"
                 name="maxPoints"
@@ -103,57 +103,30 @@ export default function CategoryForm({
             </div>
           </div>
         ) : (
-          <div className="grid3">
-            <div>
-              <label htmlFor="rate">
-                {kind === "penalty" ? "Points lost per hour" : "Points per hour"}
-              </label>
-              <input
-                id="rate"
-                name="rate"
-                className="field"
-                type="number"
-                step="0.5"
-                min="0"
-                defaultValue={String(Math.abs(category?.rate ?? 10))}
-              />
-            </div>
-            {kind === "positive" ? (
-              <div>
-                <label htmlFor="softCapHours">Full rate up to (h)</label>
-                <input
-                  id="softCapHours"
-                  name="softCapHours"
-                  className="field"
-                  type="number"
-                  step="0.25"
-                  min="0"
-                  defaultValue={h(category?.softCapMin ?? 240)}
-                />
-              </div>
-            ) : null}
-            <div>
-              <label htmlFor="hardCapHours">Stop counting after (h)</label>
-              <input
-                id="hardCapHours"
-                name="hardCapHours"
-                className="field"
-                type="number"
-                step="0.25"
-                min="0.25"
-                defaultValue={h(category?.hardCapMin ?? 480)}
-              />
-            </div>
+          <div>
+            <label htmlFor="rate">
+              {kind === "penalty" ? "Points lost per hour" : "Points per hour"}
+            </label>
+            <input
+              id="rate"
+              name="rate"
+              className="field"
+              type="number"
+              step="0.5"
+              min="0"
+              defaultValue={String(Math.abs(category?.rate ?? 10))}
+              style={{ maxWidth: 200 }}
+            />
           </div>
         )}
       </div>
 
       <p className="note">
-        {kind === "positive"
-          ? "Hours past the full rate are worth half, and hours past the hard cap are worth nothing. That rewards consistency over bingeing and makes exaggeration pointless."
-          : kind === "penalty"
-            ? "Every hour costs the same until the hard cap, which stops one bad Saturday putting someone in a hole they can't climb out of."
-            : "Full points anywhere inside the drift, falling to zero at twice the drift. Both too little and too much lose points."}
+        {kind === "target"
+          ? "Full points anywhere inside the range. Outside it, points fall away the further off you are, reaching zero once you're a full range-width past either edge."
+          : `Every hour counts the same, with no ceiling — ${
+              kind === "penalty" ? "ten hours costs ten times one hour" : "ten hours is worth ten times one hour"
+            }.`}
       </p>
 
       <div className="formactions">

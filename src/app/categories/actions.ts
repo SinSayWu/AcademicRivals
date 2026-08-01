@@ -49,26 +49,18 @@ function readFields(form: FormData) {
   const hours = (name: string, fallback = 0) => Math.round(num(name, fallback) * 60);
 
   if (kind === "target") {
-    const targetMin = hours("targetHours", 8);
-    const toleranceMin = hours("toleranceHours", 1.5);
-    if (targetMin <= 0) fail("Target must be more than zero.");
-    if (toleranceMin <= 0) fail("Tolerance must be more than zero — otherwise nothing scores.");
+    const rangeLowMin = hours("lowHours", 7);
+    const rangeHighMin = hours("highHours", 9);
+    if (rangeLowMin <= 0) fail("The bottom of the range must be more than zero.");
+    if (rangeHighMin < rangeLowMin) fail("The top of the range can't be below the bottom.");
+    if (rangeHighMin > 24 * 60) fail("A day only has 24 hours.");
     return {
       label, hint, kind,
       rate: 0,
-      softCapMin: 0,
-      hardCapMin: Math.max(targetMin * 2, 720),
-      targetMin,
-      toleranceMin,
+      rangeLowMin,
+      rangeHighMin,
       maxPoints: num("maxPoints", 15),
     };
-  }
-
-  const softCapMin = kind === "positive" ? hours("softCapHours", 4) : 0;
-  const hardCapMin = hours("hardCapHours", 8);
-  if (hardCapMin <= 0) fail("Hard cap must be more than zero.");
-  if (kind === "positive" && softCapMin > hardCapMin) {
-    fail("The full-rate cap can't be larger than the hard cap.");
   }
 
   // Penalties are stored negative; the form asks for a positive number because
@@ -76,8 +68,8 @@ function readFields(form: FormData) {
   const rate = Math.abs(num("rate", 10)) * (kind === "penalty" ? -1 : 1);
 
   return {
-    label, hint, kind, rate, softCapMin, hardCapMin,
-    targetMin: 0, toleranceMin: 0, maxPoints: 0,
+    label, hint, kind, rate,
+    rangeLowMin: 0, rangeHighMin: 0, maxPoints: 0,
   };
 }
 

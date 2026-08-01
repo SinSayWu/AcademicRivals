@@ -16,17 +16,16 @@ export type Category = {
   label: string;
   hint: string;
   kind: CategoryKind;
-  /** Points per hour. Negative for penalties. Unused by `target`. */
+  /**
+   * Points per hour, applied linearly with no ceiling. Negative for penalties.
+   * Unused by `target`.
+   */
   rate: number;
-  /** Minutes scored at the full rate; beyond this, hours are worth half. */
-  softCapMin: number;
-  /** Minutes beyond this are ignored entirely. Anti-inflation ceiling. */
-  hardCapMin: number;
-  /** `target` only: the ideal number of minutes. */
-  targetMin: number;
-  /** `target` only: full points anywhere within +/- this; zero at 2x. */
-  toleranceMin: number;
-  /** `target` only: points awarded inside the band. */
+  /** `target` only: low edge of the full-points band, in minutes. */
+  rangeLowMin: number;
+  /** `target` only: high edge of the full-points band, in minutes. */
+  rangeHighMin: number;
+  /** `target` only: points awarded anywhere inside the band. */
   maxPoints: number;
   sortOrder: number;
   active: boolean;
@@ -39,10 +38,8 @@ export const DEFAULT_CATEGORIES: Category[] = [
     hint: "Homework, studying, problem sets. Focused time only.",
     kind: "positive",
     rate: 10,
-    softCapMin: 240,
-    hardCapMin: 480,
-    targetMin: 0,
-    toleranceMin: 0,
+    rangeLowMin: 0,
+    rangeHighMin: 0,
     maxPoints: 0,
     sortOrder: 1,
     active: true,
@@ -53,10 +50,8 @@ export const DEFAULT_CATEGORIES: Category[] = [
     hint: "Clubs, competitions, side projects, instrument practice.",
     kind: "positive",
     rate: 12,
-    softCapMin: 180,
-    hardCapMin: 360,
-    targetMin: 0,
-    toleranceMin: 0,
+    rangeLowMin: 0,
+    rangeHighMin: 0,
     maxPoints: 0,
     sortOrder: 2,
     active: true,
@@ -64,13 +59,11 @@ export const DEFAULT_CATEGORIES: Category[] = [
   {
     key: "exercise",
     label: "Exercise",
-    hint: "High rate, low cap — this rewards showing up, not grinding.",
+    hint: "Anything that gets your heart rate up.",
     kind: "positive",
     rate: 20,
-    softCapMin: 60,
-    hardCapMin: 120,
-    targetMin: 0,
-    toleranceMin: 0,
+    rangeLowMin: 0,
+    rangeHighMin: 0,
     maxPoints: 0,
     sortOrder: 3,
     active: true,
@@ -81,10 +74,8 @@ export const DEFAULT_CATEGORIES: Category[] = [
     hint: "Books and long-form. Feeds do not count.",
     kind: "positive",
     rate: 15,
-    softCapMin: 60,
-    hardCapMin: 120,
-    targetMin: 0,
-    toleranceMin: 0,
+    rangeLowMin: 0,
+    rangeHighMin: 0,
     maxPoints: 0,
     sortOrder: 4,
     active: true,
@@ -95,10 +86,8 @@ export const DEFAULT_CATEGORIES: Category[] = [
     hint: "Social, YouTube, games. The honest one. Pull it from Screen Time.",
     kind: "penalty",
     rate: -10,
-    softCapMin: 0,
-    hardCapMin: 480,
-    targetMin: 0,
-    toleranceMin: 0,
+    rangeLowMin: 0,
+    rangeHighMin: 0,
     maxPoints: 0,
     sortOrder: 5,
     active: true,
@@ -106,13 +95,11 @@ export const DEFAULT_CATEGORIES: Category[] = [
   {
     key: "sleep",
     label: "Sleep",
-    hint: "Target 8h. Both too little and too much lose points.",
+    hint: "7 to 9 hours. Both too little and too much lose points.",
     kind: "target",
     rate: 0,
-    softCapMin: 0,
-    hardCapMin: 720,
-    targetMin: 480,
-    toleranceMin: 90,
+    rangeLowMin: 420,
+    rangeHighMin: 540,
     maxPoints: 15,
     sortOrder: 6,
     active: true,

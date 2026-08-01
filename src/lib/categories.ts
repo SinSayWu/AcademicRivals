@@ -7,10 +7,8 @@ type Row = {
   hint: string;
   kind: CategoryKind;
   rate: string;
-  soft_cap_min: number;
-  hard_cap_min: number;
-  target_min: number;
-  tolerance_min: number;
+  range_low_min: number;
+  range_high_min: number;
   max_points: string;
   sort_order: number;
   active: boolean;
@@ -23,18 +21,16 @@ function toCategory(r: Row): Category {
     hint: r.hint,
     kind: r.kind,
     rate: Number(r.rate),
-    softCapMin: r.soft_cap_min,
-    hardCapMin: r.hard_cap_min,
-    targetMin: r.target_min,
-    toleranceMin: r.tolerance_min,
+    rangeLowMin: r.range_low_min,
+    rangeHighMin: r.range_high_min,
     maxPoints: Number(r.max_points),
     sortOrder: r.sort_order,
     active: r.active,
   };
 }
 
-const COLUMNS = `key, label, hint, kind, rate, soft_cap_min, hard_cap_min,
-                 target_min, tolerance_min, max_points, sort_order, active`;
+const COLUMNS = `key, label, hint, kind, rate,
+                 range_low_min, range_high_min, max_points, sort_order, active`;
 
 /** Seeds the defaults the first time the app runs against an empty database. */
 async function seed(): Promise<void> {
@@ -46,11 +42,11 @@ async function seed(): Promise<void> {
   for (const c of DEFAULT_CATEGORIES) {
     await query(
       `INSERT INTO categories (${COLUMNS})
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
        ON CONFLICT (key) DO NOTHING`,
       [
-        c.key, c.label, c.hint, c.kind, c.rate, c.softCapMin, c.hardCapMin,
-        c.targetMin, c.toleranceMin, c.maxPoints, c.sortOrder, c.active,
+        c.key, c.label, c.hint, c.kind, c.rate,
+        c.rangeLowMin, c.rangeHighMin, c.maxPoints, c.sortOrder, c.active,
       ],
     );
   }
@@ -99,23 +95,23 @@ export async function createCategory(c: Omit<Category, "sortOrder" | "active">) 
   );
   await query(
     `INSERT INTO categories (${COLUMNS})
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,true)`,
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,true)`,
     [
-      c.key, c.label, c.hint, c.kind, c.rate, c.softCapMin, c.hardCapMin,
-      c.targetMin, c.toleranceMin, c.maxPoints, next?.n ?? 1,
+      c.key, c.label, c.hint, c.kind, c.rate,
+      c.rangeLowMin, c.rangeHighMin, c.maxPoints, next?.n ?? 1,
     ],
   );
 }
 
-export async function updateCategory(key: string, c: Omit<Category, "key" | "sortOrder" | "active">) {
+export async function updateCategory(
+  key: string,
+  c: Omit<Category, "key" | "sortOrder" | "active">,
+) {
   await query(
-    `UPDATE categories SET label=$2, hint=$3, kind=$4, rate=$5, soft_cap_min=$6,
-            hard_cap_min=$7, target_min=$8, tolerance_min=$9, max_points=$10
+    `UPDATE categories SET label=$2, hint=$3, kind=$4, rate=$5,
+            range_low_min=$6, range_high_min=$7, max_points=$8
      WHERE key=$1`,
-    [
-      key, c.label, c.hint, c.kind, c.rate, c.softCapMin, c.hardCapMin,
-      c.targetMin, c.toleranceMin, c.maxPoints,
-    ],
+    [key, c.label, c.hint, c.kind, c.rate, c.rangeLowMin, c.rangeHighMin, c.maxPoints],
   );
 }
 

@@ -22,12 +22,12 @@ type Search = Promise<{ edit?: string; new?: string; error?: string }>;
 function describe(c: Category): string {
   const h = (min: number) => `${Math.round((min / 60) * 100) / 100}h`;
   if (c.kind === "target") {
-    return `Target ${h(c.targetMin)} ±${h(c.toleranceMin)} · ${c.maxPoints} pts on target`;
+    return `${h(c.rangeLowMin)}–${h(c.rangeHighMin)} · ${c.maxPoints} pts inside the range`;
   }
   if (c.kind === "penalty") {
-    return `−${Math.abs(c.rate)} pts/h · capped at ${h(c.hardCapMin)}`;
+    return `−${Math.abs(c.rate)} pts per hour`;
   }
-  return `${c.rate} pts/h · full rate to ${h(c.softCapMin)} · nothing past ${h(c.hardCapMin)}`;
+  return `${c.rate} pts per hour`;
 }
 
 export default async function CategoriesPage({ searchParams }: { searchParams: Search }) {
@@ -112,6 +112,7 @@ export default async function CategoriesPage({ searchParams }: { searchParams: S
         ) : null}
 
         <p className="note">
+          Hours are uncapped — every hour counts the same, however many you log.
           Deleting a category hides it from logging but keeps the hours already
           recorded against it, so past weeks keep their scores. Editing a category
           changes scoring from now on; weeks that have already closed are frozen

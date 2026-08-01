@@ -1,4 +1,4 @@
--- Runs on every boot. Everything is IF NOT EXISTS, so it is safe to re-run.
+-- Runs on every boot. Everything here must be safe to re-run.
 
 CREATE TABLE IF NOT EXISTS users (
   id          SERIAL PRIMARY KEY,
@@ -11,24 +11,74 @@ CREATE TABLE IF NOT EXISTS users (
 -- Group-wide, editable from the Categories screen. Seeded from
 -- DEFAULT_CATEGORIES the first time the app boots against an empty database.
 CREATE TABLE IF NOT EXISTS categories (
-  key            TEXT PRIMARY KEY,
-  label          TEXT NOT NULL,
-  hint           TEXT NOT NULL DEFAULT '',
-  kind           TEXT NOT NULL CHECK (kind IN ('positive', 'penalty', 'target')),
-  rate           NUMERIC(7,2) NOT NULL DEFAULT 0,
-  soft_cap_min   INTEGER NOT NULL DEFAULT 0,
-  hard_cap_min   INTEGER NOT NULL DEFAULT 480,
-  target_min     INTEGER NOT NULL DEFAULT 0,
-  tolerance_min  INTEGER NOT NULL DEFAULT 0,
-  max_points     NUMERIC(7,2) NOT NULL DEFAULT 0,
-  sort_order     INTEGER NOT NULL DEFAULT 0,
+  key             TEXT PRIMARY KEY,
+  label           TEXT NOT NULL,
+  hint            TEXT NOT NULL DEFAULT '',
+  kind            TEXT NOT NULL CHECK (kind IN ('positive', 'penalty', 'target')),
+  -- Points per hour, linear and uncapped. Negative for penalties.
+  rate            NUMERIC(7,2) NOT NULL DEFAULT 0,
+  -- 'target' only: the full-points band, and what it pays inside it.
+  range_low_min   INTEGER NOT NULL DEFAULT 0,
+  range_high_min  INTEGER NOT NULL DEFAULT 0,
+  max_points      NUMERIC(7,2) NOT NULL DEFAULT 0,
+  sort_order      INTEGER NOT NULL DEFAULT 0,
   -- Removing a category archives it rather than dropping the row, so the
   -- hours people already logged against it aren't silently deleted.
-  active         BOOLEAN NOT NULL DEFAULT true
+  active          BOOLEAN NOT NULL DEFAULT true
 );
+
+-- Migration off the original capped model. Caps were removed, and target
+-- categories moved from "ideal +/- drift" to an explicit low/high band.
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS range_low_min INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS range_high_min INTEGER NOT NULL DEFAULT 0;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = current_schema()
+      AND table_name = 'categories'
+      AND column_name = 'target_min'
+  ) THEN
+    -- Carry the old band over so a custom target category keeps its meaning.
+    UPDATE categories
+       SET range_low_min = GREATEST(target_min - tolerance_min, 0),
+           range_high_min = target_min + tolerance_min
+     WHERE kind = 'target'
+       AND range_low_min = 0
+       AND range_high_min = 0;
+
+    -- The old Sleep default was 8h +/- 1.5h. If nobody has touched it, move it
+    -- to the requested 7-9h band rather than leaving it at 6.5-9.5h.
+    UPDATE categories
+       SET range_low_min = 420, range_high_min = 540
+     WHERE key = 'sleep' AND range_low_min = 390 AND range_high_min = 570;
+
+    ALTER TABLE categories DROP COLUMN target_min, DROP COLUMN tolerance_min;
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = current_schema()
+      AND table_name = 'categories'
+      AND column_name = 'soft_cap_min'
+  ) THEN
+    ALTER TABLE categories DROP COLUMN soft_cap_min;
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = current_schema()
+      AND table_name = 'categories'
+      AND column_name = 'hard_cap_min'
+  ) THEN
+    ALTER TABLE categories DROP COLUMN hard_cap_min;
+  END IF;
+END $$;
 
 -- One row per person per category per day, upserted. Not an append-only log:
 -- editing "today's schoolwork" should overwrite, not accumulate.
+-- The 1440 check is physical, not a scoring cap: a day has 24 hours.
 CREATE TABLE IF NOT EXISTS entries (
   user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   category_key  TEXT NOT NULL,

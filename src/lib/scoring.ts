@@ -7,8 +7,6 @@ export type CategoryScore = {
   key: string;
   label: string;
   minutes: number;
-  /** Minutes actually counted after the hard cap clamp. */
-  countedMinutes: number;
   points: number;
 };
 
@@ -17,44 +15,37 @@ export type Breakdown = {
   categories: CategoryScore[];
 };
 
+/** Falloff outside a target band is at least this wide, so a narrow band
+ *  doesn't turn into a cliff where one minute costs every point. */
+const MIN_FALLOFF_MIN = 60;
+
 /**
  * Score one category for one day.
  *
- * Positive categories use a diminishing-returns curve: time inside the soft cap
- * earns the full rate, time beyond it earns half, and time beyond the hard cap
- * earns nothing. That makes a 12-hour library binge worth less than four solid
- * days, which is the behaviour we actually want to reward — and it makes lying
- * about your hours pointless past a certain number.
+ * `positive` and `penalty` are linear and uncapped: every hour is worth `rate`,
+ * however many you log. `target` pays full points anywhere inside its band and
+ * decays to zero as you get further outside it.
  */
 export function scoreCategory(cat: Category, rawMinutes: number): CategoryScore {
   const minutes = Math.max(0, Math.round(rawMinutes || 0));
-  const counted = Math.min(minutes, cat.hardCapMin);
   let points = 0;
 
   if (cat.kind === "positive" || cat.kind === "penalty") {
-    // A soft cap of zero means "no curve" — every hour is worth the same,
-    // which is what penalties want.
-    const soft = cat.softCapMin > 0 ? cat.softCapMin : counted;
-    const atFullRate = Math.min(counted, soft);
-    const atHalfRate = Math.max(0, counted - soft);
-    points = ((atFullRate + atHalfRate * 0.5) / 60) * cat.rate;
-  } else {
-    // Target band: full points inside the tolerance, decaying linearly to zero
-    // at twice the tolerance. Logging nothing scores nothing rather than being
-    // treated as "slept 0 hours", so an un-logged day is neutral, not punitive.
-    if (minutes > 0 && cat.toleranceMin > 0) {
-      const drift = Math.abs(counted - cat.targetMin);
-      const over = Math.max(0, drift - cat.toleranceMin);
-      const decay = Math.max(0, 1 - over / cat.toleranceMin);
-      points = cat.maxPoints * decay;
-    }
+    points = (minutes / 60) * cat.rate;
+  } else if (minutes > 0) {
+    // Logging nothing scores nothing rather than being treated as "slept 0
+    // hours", so an un-logged day is neutral rather than punitive.
+    const low = Math.min(cat.rangeLowMin, cat.rangeHighMin);
+    const high = Math.max(cat.rangeLowMin, cat.rangeHighMin);
+    const falloff = Math.max(high - low, MIN_FALLOFF_MIN);
+    const outside = minutes < low ? low - minutes : minutes > high ? minutes - high : 0;
+    points = cat.maxPoints * Math.max(0, 1 - outside / falloff);
   }
 
   return {
     key: cat.key,
     label: cat.label,
     minutes,
-    countedMinutes: counted,
     points: round1(points),
   };
 }
@@ -69,9 +60,9 @@ export function scoreDay(cats: Category[], minutes: MinutesMap): Breakdown {
 }
 
 /**
- * Score a set of days. Days are scored independently and summed — this is what
- * makes the diminishing-returns curve bite. Summing the week's minutes first
- * and scoring once would let one huge day masquerade as a consistent week.
+ * Score a set of days. Days are still scored independently and summed, which
+ * matters for target categories — sleeping 8h every night should beat sleeping
+ * 56h in one go, and summing the week's minutes first would call those equal.
  */
 export function scoreDays(cats: Category[], days: MinutesMap[]): Breakdown {
   const totals = new Map<string, number>();
@@ -89,10 +80,6 @@ export function scoreDays(cats: Category[], days: MinutesMap[]): Breakdown {
     key: cat.key,
     label: cat.label,
     minutes: days.reduce((sum, d) => sum + (d[cat.key] ?? 0), 0),
-    countedMinutes: days.reduce(
-      (sum, d) => sum + Math.min(d[cat.key] ?? 0, cat.hardCapMin),
-      0,
-    ),
     points: round1(totals.get(cat.key) ?? 0),
   }));
 
@@ -142,8 +129,8 @@ export function validateMinutes(
 ): number | null {
   if (!cats.some((c) => c.key === key)) return null;
   if (!Number.isFinite(minutes) || minutes < 0) return null;
-  // Store the raw claim (clamping happens at score time) but refuse anything
-  // physically impossible so a fat finger can't write 90000 into the table.
+  // There are no scoring caps any more, but a day still only has 24 hours —
+  // this stops a fat finger writing 90000 into the table.
   return Math.min(Math.round(minutes), 24 * 60);
 }
 

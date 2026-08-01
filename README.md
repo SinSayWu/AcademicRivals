@@ -11,39 +11,41 @@ Pushing to `main` deploys automatically — Railway builds from this repo.
 ## The scoring model
 
 Categories live in the database and are edited from the **Categories** screen —
-name, scoring type, rates and caps. [`src/lib/config.ts`](src/lib/config.ts)
-only holds the defaults used to seed an empty install.
+name, scoring type and rate. [`src/lib/config.ts`](src/lib/config.ts) only holds
+the defaults used to seed an empty install.
 
 There are three scoring types:
 
 | Type | Behaviour |
 | --- | --- |
-| **Earns points** | Full rate up to a soft cap, half rate beyond it, nothing past the hard cap. |
-| **Loses points** | A flat negative rate per hour, up to a hard cap. |
-| **Hits a target** | Full points inside `target ± drift`, decaying to zero at twice the drift. |
+| **Earns points** | A flat rate per hour, linear and uncapped. |
+| **Loses points** | A flat negative rate per hour, linear and uncapped. |
+| **Hits a range** | Full points inside a low–high band, decaying to zero a full band-width outside it. |
 
 The defaults, which you should retune once you've used it for a week:
 
-| Category | Type | Rate | Caps |
-| --- | --- | --- | --- |
-| Schoolwork | earns | 10 pts/h | full to 4h, half to 8h |
-| Projects & ECs | earns | 12 pts/h | full to 3h, half to 6h |
-| Exercise | earns | 20 pts/h | full to 1h, half to 2h |
-| Reading | earns | 15 pts/h | full to 1h, half to 2h |
-| Junk Screen Time | loses | −10 pts/h | capped at 8h |
-| Sleep | target | 15 pts max | full at 8h ±1.5h, zero outside 5–11h |
+| Category | Type | Scoring |
+| --- | --- | --- |
+| Schoolwork | earns | 10 pts/h |
+| Projects & ECs | earns | 12 pts/h |
+| Exercise | earns | 20 pts/h |
+| Reading | earns | 15 pts/h |
+| Junk Screen Time | loses | −10 pts/h |
+| Sleep | range | 7–9h, 15 pts inside; zero below 5h or above 11h |
 
-Three deliberate choices:
+Two things to know about this model:
 
-- **Diminishing returns.** Four steady 4-hour days score 160; one 16-hour binge
-  scores 60. This rewards the behaviour you actually want and makes
-  exaggeration pointless past a certain number.
-- **High rate, low cap on Exercise and Reading.** They reward showing up daily
-  rather than grinding.
-- **Sleep is a band, not a maximum.** Too little and too much both lose points.
+- **Hours are uncapped and linear.** The tenth hour of schoolwork is worth
+  exactly as much as the first, and four 4-hour days score the same as one
+  16-hour day. There is nothing in the scoring that prefers consistency — if
+  you want that back, it lives in `scoreCategory` in
+  [`src/lib/scoring.ts`](src/lib/scoring.ts).
+- **Sleep is a range, not a maximum.** Too little and too much both lose
+  points, and the falloff is as wide as the band itself.
 
-Each day is scored independently and then summed. Summing a week's minutes and
-scoring once would let a single huge day masquerade as a consistent week.
+Days are still scored independently and then summed, which matters for range
+categories: sleeping 8h a night should beat sleeping 56h in one go, and summing
+the week's minutes first would call those equal.
 
 ## Anti-inflation
 
@@ -51,7 +53,8 @@ Self-reported hours plus competition equals inflation, and that — not the tech
 is what kills this kind of app. The defences:
 
 - **Everything is public.** Every rival sees every number. This is the real one.
-- **Hard caps** make lying past a certain number score nothing.
+- **Nothing caps the hours.** Caps were removed by request, so the only thing
+  discouraging inflated numbers is that everyone can see them.
 - **A 3-day edit window** (`EDIT_GRACE_DAYS`). You cannot invent a whole week on
   Sunday night; the server re-checks this, so a stale tab can't write to a
   locked week either.
@@ -79,7 +82,7 @@ The schema applies itself on first query and seeds the default categories —
 there is no migration step to run.
 
 ```bash
-npm test    # 18 tests covering scoring, custom categories, streaks, dates
+npm test    # 18 tests covering scoring, ranges, custom categories, streaks, dates
 ```
 
 ## Deploying to Railway

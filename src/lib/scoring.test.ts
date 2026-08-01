@@ -8,24 +8,24 @@ import { formatMinutes, parseTime } from "./timeinput";
 const CATS = DEFAULT_CATEGORIES;
 const cat = (key: string) => CATS.find((c) => c.key === key)!;
 
-test("positive categories pay full rate inside the soft cap", () => {
+test("positive categories are linear at their rate", () => {
+  assert.equal(scoreCategory(cat("schoolwork"), 60).points, 10);
   assert.equal(scoreCategory(cat("schoolwork"), 240).points, 40);
   assert.equal(scoreCategory(cat("exercise"), 60).points, 20);
+  assert.equal(scoreCategory(cat("reading"), 30).points, 7.5);
 });
 
-test("positive categories pay half rate past the soft cap", () => {
-  // 8h schoolwork = 4h at full + 4h at half = 40 + 20
-  assert.equal(scoreCategory(cat("schoolwork"), 480).points, 60);
+test("nothing is capped — the tenth hour is worth as much as the first", () => {
+  const one = scoreCategory(cat("schoolwork"), 60).points;
+  assert.equal(scoreCategory(cat("schoolwork"), 600).points, one * 10);
+  // Right up to the edge of a physically possible day.
+  assert.equal(scoreCategory(cat("schoolwork"), 1440).points, 240);
 });
 
-test("the hard cap makes exaggeration worthless", () => {
-  const capped = scoreCategory(cat("schoolwork"), 480).points;
-  assert.equal(scoreCategory(cat("schoolwork"), 900).points, capped);
-  assert.equal(scoreCategory(cat("schoolwork"), 1440).points, capped);
-});
-
-test("consistency beats bingeing", () => {
-  // The whole point of the curve: four steady days must outscore one huge one.
+test("a long day and several short ones now score the same", () => {
+  // Caps and the diminishing-returns curve were removed by request, so the
+  // scorer no longer prefers consistency. This test documents that on purpose:
+  // if it ever fails, the curve came back.
   const steady = scoreDays(CATS, [
     { schoolwork: 240 },
     { schoolwork: 240 },
@@ -34,23 +34,28 @@ test("consistency beats bingeing", () => {
   ]).total;
   const binge = scoreDays(CATS, [{ schoolwork: 960 }, {}, {}, {}]).total;
   assert.equal(steady, 160);
-  assert.equal(binge, 60);
-  assert.ok(steady > binge);
+  assert.equal(binge, 160);
 });
 
-test("screen time subtracts, linearly and without mercy", () => {
+test("screen time subtracts linearly and without a floor", () => {
   assert.equal(scoreCategory(cat("screen"), 120).points, -20);
   assert.equal(scoreCategory(cat("screen"), 240).points, -40);
-  // Capped so one awful Saturday can't put you in an unrecoverable hole.
-  assert.equal(scoreCategory(cat("screen"), 900).points, -80);
+  assert.equal(scoreCategory(cat("screen"), 900).points, -150);
 });
 
-test("sleep scores a band, not a maximum", () => {
-  assert.equal(scoreCategory(cat("sleep"), 480).points, 15); // 8h, ideal
-  assert.equal(scoreCategory(cat("sleep"), 390).points, 15); // 6.5h, edge of band
-  assert.equal(scoreCategory(cat("sleep"), 570).points, 15); // 9.5h, edge of band
-  assert.equal(scoreCategory(cat("sleep"), 300).points, 0); // 5h, too little
-  assert.equal(scoreCategory(cat("sleep"), 660).points, 0); // 11h, too much
+test("sleep pays full points anywhere in 7-9 hours", () => {
+  assert.equal(scoreCategory(cat("sleep"), 420).points, 15); // 7h, low edge
+  assert.equal(scoreCategory(cat("sleep"), 480).points, 15); // 8h, middle
+  assert.equal(scoreCategory(cat("sleep"), 540).points, 15); // 9h, high edge
+});
+
+test("sleep decays outside the range and bottoms out a range-width past it", () => {
+  // The band is 2h wide, so the falloff is 2h: zero at 5h and at 11h.
+  assert.equal(scoreCategory(cat("sleep"), 360).points, 7.5); // 6h, halfway down
+  assert.equal(scoreCategory(cat("sleep"), 300).points, 0); // 5h
+  assert.equal(scoreCategory(cat("sleep"), 240).points, 0); // 4h, no negatives
+  assert.equal(scoreCategory(cat("sleep"), 600).points, 7.5); // 10h, halfway down
+  assert.equal(scoreCategory(cat("sleep"), 660).points, 0); // 11h
 });
 
 test("an unlogged sleep day is neutral, not a zero-hour night", () => {
@@ -58,7 +63,7 @@ test("an unlogged sleep day is neutral, not a zero-hour night", () => {
   assert.equal(scoreDay(CATS, { schoolwork: 240 }).total, 40);
 });
 
-test("a realistic good day lands near 100", () => {
+test("a realistic good day still lands near 100", () => {
   const day = scoreDay(CATS, {
     schoolwork: 300,
     projects: 120,
@@ -67,7 +72,7 @@ test("a realistic good day lands near 100", () => {
     screen: 90,
     sleep: 465,
   });
-  assert.ok(day.total > 80 && day.total < 120, `got ${day.total}`);
+  assert.ok(day.total > 80 && day.total < 130, `got ${day.total}`);
 });
 
 // ------------------------------------------------- user-defined categories
@@ -80,10 +85,8 @@ function custom(over: Partial<Category>): Category {
     hint: "",
     kind: "positive",
     rate: 10,
-    softCapMin: 0,
-    hardCapMin: 480,
-    targetMin: 0,
-    toleranceMin: 0,
+    rangeLowMin: 0,
+    rangeHighMin: 0,
     maxPoints: 0,
     sortOrder: 99,
     active: true,
@@ -91,20 +94,10 @@ function custom(over: Partial<Category>): Category {
   };
 }
 
-test("a soft cap of zero means a flat rate with no curve", () => {
-  // The Categories form leaves softCap at 0 for penalties, and a user can do
-  // the same for a positive category. That must mean "no half-rate tier",
-  // not "everything is half rate".
-  const flat = custom({ rate: 10, softCapMin: 0, hardCapMin: 600 });
-  assert.equal(scoreCategory(flat, 60).points, 10);
-  assert.equal(scoreCategory(flat, 600).points, 100);
-});
-
 test("a user-defined category scores alongside the built-ins", () => {
-  const cats = [cat("schoolwork"), custom({ key: "music", label: "Music", rate: 20, softCapMin: 60, hardCapMin: 120 })];
+  const cats = [cat("schoolwork"), custom({ key: "music", label: "Music", rate: 20 })];
   const day = scoreDay(cats, { schoolwork: 120, music: 90 });
-  // 2h schoolwork = 20, 1.5h music = 20 + (30min at half rate) = 20 + 5
-  assert.equal(day.total, 45);
+  assert.equal(day.total, 20 + 30);
 });
 
 test("scoring only counts the categories it is given", () => {
@@ -115,9 +108,19 @@ test("scoring only counts the categories it is given", () => {
   assert.equal(day.categories.length, 1);
 });
 
-test("a target category with no tolerance scores nothing rather than dividing by zero", () => {
-  const broken = custom({ kind: "target", targetMin: 480, toleranceMin: 0, maxPoints: 15 });
-  assert.equal(scoreCategory(broken, 480).points, 0);
+test("a backwards range is read as a range, not as nothing", () => {
+  // Nothing stops someone typing 9 in the "from" box and 7 in the "to" box.
+  const flipped = custom({ kind: "target", rangeLowMin: 540, rangeHighMin: 420, maxPoints: 15 });
+  assert.equal(scoreCategory(flipped, 480).points, 15);
+});
+
+test("a zero-width range still has a usable falloff instead of a cliff", () => {
+  // Exactly 8h and nothing else. Without a floor on the falloff, one minute
+  // either side would wipe out every point.
+  const exact = custom({ kind: "target", rangeLowMin: 480, rangeHighMin: 480, maxPoints: 10 });
+  assert.equal(scoreCategory(exact, 480).points, 10);
+  assert.equal(scoreCategory(exact, 510).points, 5); // 30min off, half credit
+  assert.equal(scoreCategory(exact, 540).points, 0); // a full hour off
 });
 
 // ------------------------------------------------------------------ ranking
