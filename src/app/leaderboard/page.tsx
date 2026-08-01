@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { getImprovement, getWeek, lockFinishedWeeks } from "@/lib/data";
@@ -85,7 +86,8 @@ export default async function LeaderboardPage() {
           <section>
             <div className="list">
               {rows.map((r) => (
-                <div
+                <Link
+                  href={`/rivals/${encodeURIComponent(r.handle)}`}
                   key={r.userId}
                   className={`lb r${r.rank} ${r.userId === session.userId ? "me" : ""}`}
                 >
@@ -99,9 +101,13 @@ export default async function LeaderboardPage() {
                   </div>
                   <Spark daily={r.daily} />
                   <div className="score">{r.points}</div>
-                </div>
+                  <div className="chev" aria-hidden>
+                    →
+                  </div>
+                </Link>
               ))}
             </div>
+            <p className="note">Open anyone to see exactly what they logged, day by day.</p>
           </section>
 
           <section className="cols2">

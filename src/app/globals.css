@@ -588,11 +588,157 @@ button.primary.block {
   opacity: 0.45;
 }
 
+/* Leaderboard rows are links now, so they need affordance without turning into
+   buttons. The arrow only shows on hover. */
+.lb {
+  transition: background 0.12s;
+}
+
+.lb .chev {
+  width: 14px;
+  color: var(--faint);
+  opacity: 0;
+  transition: opacity 0.12s;
+  flex-shrink: 0;
+}
+
+.lb:hover {
+  background: var(--sunk);
+}
+
+.list > .lb.r1:hover {
+  background: #fbe7e3;
+}
+
+.lb:hover .chev {
+  opacity: 1;
+}
+
 .cols2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 36px;
   align-items: start;
+}
+
+/* ============================================================== rival detail */
+
+.gridwrap {
+  overflow-x: auto;
+}
+
+.weekgrid {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.weekgrid th,
+.weekgrid td {
+  text-align: center;
+  padding: 9px 6px;
+  border-bottom: 1px solid var(--line-soft);
+  font-variant-numeric: lining-nums tabular-nums;
+  white-space: nowrap;
+}
+
+.weekgrid th {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 1.5px solid var(--ink);
+  padding-bottom: 8px;
+}
+
+.weekgrid th span {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--faint);
+  letter-spacing: 0;
+}
+
+.weekgrid th.istoday {
+  color: var(--red);
+}
+
+.weekgrid th.istoday span {
+  color: var(--red);
+}
+
+.weekgrid .cat,
+.weekgrid th.cat {
+  text-align: left;
+  padding-left: 2px;
+  white-space: normal;
+  min-width: 130px;
+}
+
+.weekgrid td.cat {
+  font-weight: 500;
+}
+
+.weekgrid .gone {
+  font-size: 10px;
+  color: var(--faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.weekgrid td.zero {
+  color: #cdc4b9;
+}
+
+.weekgrid .tot {
+  border-left: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.weekgrid tfoot td {
+  border-top: 1.5px solid var(--ink);
+  border-bottom: none;
+  font-weight: 600;
+  padding-top: 11px;
+}
+
+.rivalpills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  font-size: 13px;
+  transition: border-color 0.12s;
+}
+
+.pill span {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.pill:hover {
+  border-color: var(--muted);
+}
+
+.pill.on {
+  border-color: var(--red);
+  background: var(--red-tint);
+}
+
+.pill.on span {
+  color: var(--red-deep);
 }
 
 .bignum {

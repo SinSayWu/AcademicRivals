@@ -1,5 +1,6 @@
 import { query, queryOne } from "./db";
 import { listAllCategories, listCategories } from "./categories";
+import type { Category } from "./config";
 import { addDays, today, weekDates, weekStart, type LocalDate } from "./dates";
 import {
   currentStreak,
@@ -27,6 +28,64 @@ function toLocalDate(value: unknown): LocalDate {
 
 export async function listUsers(): Promise<UserRow[]> {
   return query<UserRow>(`SELECT id, name, handle FROM users ORDER BY name`);
+}
+
+export async function getUserByHandle(handle: string): Promise<UserRow | null> {
+  return queryOne<UserRow>(`SELECT id, name, handle FROM users WHERE handle = $1`, [
+    handle,
+  ]);
+}
+
+export type WeekDetail = {
+  dates: LocalDate[];
+  /** Minutes per category, one map per day, Monday first. */
+  days: MinutesMap[];
+  /** Points per day, Monday first. */
+  dayTotals: number[];
+  breakdown: Breakdown;
+  /** Only the categories worth showing: active ones, plus any archived one
+   *  that still has hours logged against it this week. */
+  categories: Category[];
+};
+
+/**
+ * One rival's week, broken out day by day. This is what makes the leaderboard
+ * auditable — a total nobody can inspect is just a number you have to trust.
+ */
+export async function getUserWeekDetail(
+  userId: number,
+  anyDateInWeek: LocalDate,
+): Promise<WeekDetail> {
+  const dates = weekDates(anyDateInWeek);
+  const [allCats, rows] = await Promise.all([
+    listAllCategories(),
+    query<EntryRow>(
+      `SELECT category_key, local_date, minutes FROM entries
+       WHERE user_id = $1 AND local_date >= $2::date AND local_date <= $3::date`,
+      [userId, dates[0], dates[6]],
+    ),
+  ]);
+
+  const byDate = new Map<LocalDate, MinutesMap>();
+  for (const row of rows) {
+    const date = toLocalDate(row.local_date);
+    const day = byDate.get(date) ?? {};
+    day[row.category_key] = row.minutes;
+    byDate.set(date, day);
+  }
+
+  const days = dates.map((d) => byDate.get(d) ?? {});
+  const loggedKeys = new Set(rows.map((r) => r.category_key));
+
+  return {
+    dates,
+    days,
+    dayTotals: days.map((d) => scoreDays(allCats, [d]).total),
+    // Score against every category, archived included, so the total here always
+    // matches the leaderboard.
+    breakdown: scoreDays(allCats, days),
+    categories: allCats.filter((c) => c.active || loggedKeys.has(c.key)),
+  };
 }
 
 export async function saveEntries(
